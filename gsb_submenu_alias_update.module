@@ -1,0 +1,27 @@
+<?php
+
+/**
+ * Implements hook_path_update().
+ */
+function gsb_submenu_alias_update_path_update(array $path) {
+  if ($path['original']['alias'] != $path['alias']) {
+    _gsb_submenu_alias_update_set_subalias($path['original']['alias']);
+  }
+}
+
+function _gsb_submenu_alias_update_set_subalias($alias) {
+  $original_path = $alias . '/' . '%';
+  $select = db_select('url_alias', 'ua');
+  $select->condition('alias', $original_path, 'LIKE');
+  $select->condition('alias', $original_path . '/%', 'NOT LIKE');
+  $query = $select->fields('ua', array('source', 'alias'))->execute();
+  $results = $query->fetchAll();
+  $nids = array();
+  foreach ($results as $result) {
+    $pos = strpos($result->source, 'node/');
+    if ($pos !== false) {
+      $nids[] = str_replace('node/', '', $result->source);
+    }
+  }
+  pathauto_node_update_alias_multiple($nids, 'bulkupdate', array('force' => TRUE));
+}
