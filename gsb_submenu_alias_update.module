@@ -4,18 +4,17 @@
  * Implements hook_form_BASE_FORM_ID_alter().
  */
 function gsb_submenu_alias_update_form_node_type_form_alter(&$form, $form_state) {
-  $form['workflow']['node_options']['#options']['force_pathauto'] = 'Force PathAuto'; 
+  $form['workflow']['node_options']['#options']['force_pathauto'] = 'Default Force PathAuto to On';
 }
 
 /**
  * Implements hook_node_presave().
  */
 function gsb_submenu_alias_update_node_presave($node) {
-  $node_options = variable_get('node_options_'.$node->type, array());
-  if (in_array('force_pathauto', $node_options)) {
+  if ($node->node_force_pathauto) {
     $node->path['pathauto'] = 1;
   }
-}  
+}
 
 /**
  * Implements hook_path_update().
@@ -41,4 +40,64 @@ function _gsb_submenu_alias_update_set_subalias($alias) {
     }
   }
   pathauto_node_update_alias_multiple($nids, 'bulkupdate', array('force' => TRUE));
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function gsb_submenu_alias_update_form_node_form_alter(&$form, &$form_state) {
+  $force_pathauto = _gsb_submenu_alias_update_get_force_pathauto($form_state['node']);
+  $form['options']['node_force_pathauto'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Force Pathauto'),
+    '#default_value' => $force_pathauto,
+    '#on_value' => true,
+    '#off_value' => false,
+  );
+  $form['actions']['submit']['#submit'][] = 'gsb_submenu_alias_update_node_submit';
+}
+
+/**
+ * Handles submit for the node edit form, to save the force override information.
+ */
+function gsb_submenu_alias_update_node_submit($form, &$form_state) {
+  if (empty($form_state['node'])) {
+    return;
+  }
+  $fields = array(
+    'nid' => $form_state['node']->nid,
+    'force_pathauto' => (int)$form_state['values']['node_force_pathauto'],
+  );
+  db_merge('submenu_alias_pathauto')
+    ->fields($fields)
+    ->key(array('nid' => $form_state['node']->nid))
+    ->execute();
+}
+
+function _gsb_submenu_alias_update_get_force_pathauto($node) {
+  $force_pathauto = null;
+
+  if (isset($node->nid)) {
+    $result = db_select('submenu_alias_pathauto', 'sa')
+      ->fields('sa')
+      ->condition('nid', $node->nid)
+      ->execute();
+
+    if ($result->rowCount()) {
+      $force_pathauto = db_select('submenu_alias_pathauto', 'sa')
+        ->fields('sa', array('force_pathauto'))
+        ->condition('nid', $node->nid)
+        ->execute()
+        ->fetchField();
+    }
+  }
+  if (is_null($force_pathauto)) {
+    $force_pathauto = FALSE;
+    $node_options = variable_get('node_options_' . $node->type, array());
+    if (in_array('force_pathauto', $node_options)) {
+      $force_pathauto = TRUE;
+    }
+  }
+
+  return $force_pathauto;
 }
