@@ -1,0 +1,34 @@
+<?php
+
+/**
+ * @file
+ *   Install file for GSB Submenu Alias Update
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function gsb_submenu_alias_update_schema() {
+
+  $schema['submenu_alias_pathauto'] = array(
+    'description' => 'Defines the nodes with submenu alias pathauto setting.',
+    'fields' => array(
+      'nid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The node id.',
+      ),
+      'force_pathauto' => array(
+        'description' => 'Force Pathauto',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'size' => 'tiny',
+      ),
+    ),
+    'primary key' => array('nid', 'force_pathauto'),
+  );
+
+  return $schema;
+}
