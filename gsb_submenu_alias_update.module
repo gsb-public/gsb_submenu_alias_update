@@ -11,7 +11,7 @@ function gsb_submenu_alias_update_form_node_type_form_alter(&$form, $form_state)
  * Implements hook_node_presave().
  */
 function gsb_submenu_alias_update_node_presave($node) {
-  if ($node->node_force_pathauto) {
+  if ($node->path['node_force_pathauto']) {
     $node->path['pathauto'] = 1;
   }
 }
@@ -47,13 +47,17 @@ function _gsb_submenu_alias_update_set_subalias($alias) {
  */
 function gsb_submenu_alias_update_form_node_form_alter(&$form, &$form_state) {
   $force_pathauto = _gsb_submenu_alias_update_get_force_pathauto($form_state['node']);
-  $form['options']['node_force_pathauto'] = array(
+  $form['path']['node_force_pathauto'] = array(
     '#type' => 'checkbox',
     '#title' => t('Force Pathauto'),
     '#default_value' => $force_pathauto,
-    '#on_value' => true,
-    '#off_value' => false,
+    '#on_value' => TRUE,
+    '#off_value' => FALSE,
+    '#weight' => -5,
   );
+  if ($form['path']['pathauto']['#default_value']) {
+    $form['path']['node_force_pathauto']['#disabled'] = TRUE;
+  }
   $form['actions']['submit']['#submit'][] = 'gsb_submenu_alias_update_node_submit';
 }
 
@@ -66,7 +70,7 @@ function gsb_submenu_alias_update_node_submit($form, &$form_state) {
   }
   $fields = array(
     'nid' => $form_state['node']->nid,
-    'force_pathauto' => (int)$form_state['values']['node_force_pathauto'],
+    'force_pathauto' => (int)$form_state['values']['path']['node_force_pathauto'],
   );
   db_merge('submenu_alias_pathauto')
     ->fields($fields)

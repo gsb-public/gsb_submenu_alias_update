@@ -32,3 +32,20 @@ function gsb_submenu_alias_update_schema() {
 
   return $schema;
 }
+
+/**
+ * Implements hook_install().
+ */
+function gsb_submenu_alias_update_install() {
+  // Make the weight of our module one higher than pathauto.
+  $weight = db_select('system', 's')
+              ->fields('s', array('weight'))
+              ->condition('name', 'pathauto', '=')
+              ->execute()
+              ->fetchField();
+
+  db_update('system')
+    ->fields(array('weight' => $weight +1))
+    ->condition('name', 'gsb_submenu_alias_update', '=')
+    ->execute();
+}
